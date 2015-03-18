@@ -1,3 +1,26 @@
+//! ### crc16
+//!
+//! #### Installation
+//!
+//! ```toml
+//! [dependencies]
+//! crc16 = "*"
+//! ```
+//!
+//! #### Usage
+//!
+//! ```rust
+//! use crc16::*;
+//!
+//! // In one pass
+//! assert_eq!(State::<Crc16>::calculate(b"123456789"), 0xBB3D);
+//!
+//! // Incrementally
+//! let mut state = State::<Crc16>::new();
+//! state.update(b"12345");
+//! state.update(b"6789");
+//! assert_eq!(state.get(), 0xBB3D);
+//! ```
 #![cfg_attr(test, feature(test))]
 
 const CRC16_CCITT_TABLE: [u16; 256] = [
@@ -68,58 +91,107 @@ const CRC16_IBM_TABLE: [u16; 256] = [
     0x4400, 0x84C1, 0x8581, 0x4540, 0x8701, 0x47C0, 0x4680, 0x8641,
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040];
 
-pub fn crc16_ccitt(msg: &[u8]) -> u16 {
-    let mut crc = 0xFFFF;
-
-    for i in 0..msg.len() {
-        crc = (crc << 8) ^ CRC16_CCITT_TABLE[((crc >> 8) ^ msg[i] as u16) as usize];
-    }
-
-    crc
+pub trait CrcType : std::marker::PhantomFn<Self> {
+    fn init() -> u16;
+    fn update(crc: u16, msg: &[u8]) -> u16;
 }
 
-pub fn crc16_ibm(msg: &[u8]) -> u16 {
-    let mut crc = 0xFFFF;
-    let len = msg.len();
+pub enum Crc16 {}
+pub enum Crc16Ibm {}
+pub enum Crc16Ccitt {}
 
-    for i in 0..len {
-        crc = (crc >> 8) ^ CRC16_IBM_TABLE[((crc & 0xFF) ^ msg[i] as u16) as usize];
+impl CrcType for Crc16 {
+    fn init() -> u16 {
+        0x0000
     }
-
-    crc
+    fn update(mut crc: u16, msg: &[u8]) -> u16 {
+        for i in 0..msg.len() {
+            crc = (crc >> 8) ^ CRC16_IBM_TABLE[((crc & 0xFF) ^ msg[i] as u16) as usize];
+        }
+        crc
+    }
 }
 
-pub fn crc16(msg: &[u8]) -> u16 {
-    let mut crc = 0x0000;
-    let len = msg.len();
-
-    for i in 0..len {
-        crc = (crc >> 8) ^ CRC16_IBM_TABLE[((crc & 0xFF) ^ msg[i] as u16) as usize];
+impl CrcType for Crc16Ibm {
+    fn init() -> u16 {
+        0xFFFF
     }
+    fn update(mut crc: u16, msg: &[u8]) -> u16 {
+        for i in 0..msg.len() {
+            crc = (crc >> 8) ^ CRC16_IBM_TABLE[((crc & 0xFF) ^ msg[i] as u16) as usize];
+        }
+        crc
+    }
+}
 
-    crc
+impl CrcType for Crc16Ccitt {
+    fn init() -> u16 {
+        0xFFFF
+    }
+    fn update(mut crc: u16, msg: &[u8]) -> u16 {
+        for i in 0..msg.len() {
+            crc = (crc << 8) ^ CRC16_CCITT_TABLE[((crc >> 8) ^ msg[i] as u16) as usize];
+        }
+        crc
+    }
+}
+
+pub struct State<T> {
+    state: u16,
+    ty: std::marker::PhantomData<T>,
+}
+
+impl<T: CrcType> State<T> {
+    pub fn new() -> State<T> {
+        State {
+            state: <T as CrcType>::init(),
+            ty: std::marker::PhantomData,
+        }
+    }
+    pub fn update(&mut self, msg: &[u8]) {
+        self.state = <T as CrcType>::update(self.state, msg);
+    }
+    pub fn get(&self) -> u16 {
+        self.state
+    }
+    pub fn calculate(msg: &[u8]) -> u16 {
+        <T as CrcType>::update(<T as CrcType>::init(), msg)
+    }
 }
 
 #[cfg(test)]
 mod test {
     extern crate test;
-    use super::crc16;
-    use super::crc16_ibm;
-    use super::crc16_ccitt;
+    use super::State;
+    use super::Crc16;
+    use super::Crc16Ibm;
+    use super::Crc16Ccitt;
 
     #[test]
     fn test_crc16_ccitt() {
-        assert_eq!(crc16_ccitt(b"123456789"), 0x29B1);
+        assert_eq!(State::<Crc16Ccitt>::calculate(b"123456789"), 0x29B1);
+        let mut state = State::<Crc16Ccitt>::new();
+        state.update(b"12345");
+        state.update(b"6789");
+        assert_eq!(state.get(), 0x29B1);
     }
 
     #[test]
     fn test_crc16_ibm() {
-        assert_eq!(crc16_ibm(b"123456789"), 0x4B37);
+        assert_eq!(State::<Crc16Ibm>::calculate(b"123456789"), 0x4B37);
+        let mut state = State::<Crc16Ibm>::new();
+        state.update(b"12345");
+        state.update(b"6789");
+        assert_eq!(state.get(), 0x4B37);
     }
 
     #[test]
     fn test_crc16() {
-        assert_eq!(crc16(b"123456789"), 0xBB3D);
+        assert_eq!(State::<Crc16>::calculate(b"123456789"), 0xBB3D);
+        let mut state = State::<Crc16>::new();
+        state.update(b"12345");
+        state.update(b"6789");
+        assert_eq!(state.get(), 0xBB3D);
     }
 
     #[bench]
@@ -128,7 +200,7 @@ mod test {
         for i in 0..(1024 * 1024) {
             v.push((i % 256) as u8)
         }
-        b.iter(|| crc16_ccitt(&v[..]));
+        b.iter(|| State::<Crc16Ccitt>::calculate(&v[..]));
         b.bytes = 1024 * 1024;
     }
 
@@ -138,7 +210,7 @@ mod test {
         for i in 0..(1024 * 1024) {
             v.push((i % 256) as u8)
         }
-        b.iter(|| crc16_ibm(&v[..]));
+        b.iter(|| State::<Crc16Ibm>::calculate(&v[..]));
         b.bytes = 1024 * 1024;
     }
 
@@ -148,7 +220,7 @@ mod test {
         for i in 0..(1024 * 1024) {
             v.push((i % 256) as u8)
         }
-        b.iter(|| crc16(&v[..]));
+        b.iter(|| State::<Crc16>::calculate(&v[..]));
         b.bytes = 1024 * 1024;
     }
 }
