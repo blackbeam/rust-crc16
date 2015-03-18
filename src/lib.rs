@@ -96,8 +96,46 @@ pub trait CrcType : std::marker::PhantomFn<Self> {
     fn update(crc: u16, msg: &[u8]) -> u16;
 }
 
+/// CRC 16
+///
+/// ```
+///   Name : CRC 16
+///  Width : 16
+///   Poly : 8005
+///   Init : 0000
+///  RefIn : True
+/// RefOut : True
+/// XorOut : 0000
+///  Check : BB3D
+/// ```
 pub enum Crc16 {}
+
+/// CRC 16/IBM
+///
+/// ```
+///   Name : CRC 16/IBM
+///  Width : 16
+///   Poly : 8005
+///   Init : FFFF
+///  RefIn : True
+/// RefOut : True
+/// XorOut : 0000
+///  Check : 4B37
+/// ```
 pub enum Crc16Ibm {}
+
+/// CRC 16/CCITT
+///
+/// ```
+///   Name : CRC 16/CITT
+///  Width : 16
+///   Poly : 1021
+///   Init : FFFF
+///  RefIn : False
+/// RefOut : False
+/// XorOut : 0000
+///  Check : 29B1
+/// ```
 pub enum Crc16Ccitt {}
 
 impl CrcType for Crc16 {
