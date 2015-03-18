@@ -98,8 +98,8 @@ pub trait CrcType : std::marker::PhantomFn<Self> {
 
 /// CRC 16
 ///
-/// ```
-///   Name : CRC 16
+/// ```text
+///   Name : CRC-16
 ///  Width : 16
 ///   Poly : 8005
 ///   Init : 0000
@@ -112,8 +112,8 @@ pub enum Crc16 {}
 
 /// CRC 16/IBM
 ///
-/// ```
-///   Name : CRC 16/IBM
+/// ```text
+///   Name : CRC-16/IBM
 ///  Width : 16
 ///   Poly : 8005
 ///   Init : FFFF
@@ -126,8 +126,8 @@ pub enum Crc16Ibm {}
 
 /// CRC 16/CCITT
 ///
-/// ```
-///   Name : CRC 16/CITT
+/// ```text
+///   Name : CRC-16/CCITT-FALSE
 ///  Width : 16
 ///   Poly : 1021
 ///   Init : FFFF
