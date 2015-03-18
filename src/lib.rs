@@ -36,7 +36,7 @@ const CRC16_CCITT_TABLE: [u16; 256] = [
     0xEF1F, 0xFF3E, 0xCF5D, 0xDF7C, 0xAF9B, 0xBFBA, 0x8FD9, 0x9FF8,
     0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0];
 
-const CRC16_TABLE: [u16; 256] = [
+const CRC16_IBM_TABLE: [u16; 256] = [
     0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
     0xC601, 0x06C0, 0x0780, 0xC741, 0x0500, 0xC5C1, 0xC481, 0x0440,
     0xCC01, 0x0CC0, 0x0D80, 0xCD41, 0x0F00, 0xCFC1, 0xCE81, 0x0E40,
@@ -80,12 +80,12 @@ pub fn crc16_ccitt(msg: &[u8]) -> u16 {
     crc
 }
 
-pub fn crc16(msg: &[u8]) -> u16 {
+pub fn crc16_ibm(msg: &[u8]) -> u16 {
     let mut crc = INIT;
     let len = msg.len();
 
     for i in 0..len {
-        crc = (crc >> 8) ^ CRC16_TABLE[((crc & 0xFF) ^ msg[i] as u16) as usize];
+        crc = (crc >> 8) ^ CRC16_IBM_TABLE[((crc & 0xFF) ^ msg[i] as u16) as usize];
     }
 
     crc
@@ -94,7 +94,7 @@ pub fn crc16(msg: &[u8]) -> u16 {
 #[cfg(test)]
 mod test {
     extern crate test;
-    use super::crc16;
+    use super::crc16_ibm;
     use super::crc16_ccitt;
 
     #[test]
@@ -103,8 +103,8 @@ mod test {
     }
 
     #[test]
-    fn test_crc16() {
-        assert_eq!(crc16(b"123456789"), 0x4B37);
+    fn test_crc16_ibm() {
+        assert_eq!(crc16_ibm(b"123456789"), 0x4B37);
     }
 
     #[bench]
@@ -118,12 +118,12 @@ mod test {
     }
 
     #[bench]
-    fn bench_crc16(b: &mut test::Bencher) {
+    fn bench_crc16_ibm(b: &mut test::Bencher) {
         let mut v = Vec::with_capacity(1024 * 1024);
         for i in 0..(1024 * 1024) {
             v.push((i % 256) as u8)
         }
-        b.iter(|| crc16(&v[..]));
+        b.iter(|| crc16_ibm(&v[..]));
         b.bytes = 1024 * 1024;
     }
 }
