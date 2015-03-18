@@ -1,0 +1,28 @@
+[package]
+
+name = "crc16"
+version = "0.1.0"
+authors = ["AIkorsky <aikorsky@gmail.com>"]
+license = "MIT"
+description = "A CRC16 implementation"
+repository = "https://github.com/blackbeam/rust-crc16"
+documentation = "https://blackbeam.github.io/rust-crc16/doc/crc16"
+readme = "README.md"
+keywords = ["crc", "crc16", "crc-16", "hash", "checksum"]
+exclude = [".*"]
+
+[lib]
+
+name = "crc16"
+path = "src/lib.rs"
+
+[profile.bench]
+
+opt-level = 3
+debug = false
+
+[profile.release]
+
+opt-level = 3
+debug = false
+lto = true
