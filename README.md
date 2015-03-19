@@ -4,6 +4,10 @@
 
 Use [cargo package](https://crates.io/crates/crc16).
 
+#### Documentation
+
+Hosted on [github pages](https://blackbeam.github.io/rust-crc16).
+
 #### Supported variants
 * ARC
   * ```poly=0x8005 init=0x0000 refin=true refout=true xorout=0x0000 check=0xbb3d```
