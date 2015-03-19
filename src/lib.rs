@@ -13,252 +13,340 @@
 //! use crc16::*;
 //!
 //! // In one pass
-//! assert_eq!(State::<Crc16>::calculate(b"123456789"), 0xBB3D);
+//! assert_eq!(State::<ARC>::calculate(b"123456789"), 0xBB3D);
 //!
 //! // Incrementally
-//! let mut state = State::<Crc16>::new();
+//! let mut state = State::<ARC>::new();
 //! state.update(b"12345");
 //! state.update(b"6789");
 //! assert_eq!(state.get(), 0xBB3D);
 //! ```
 #![cfg_attr(test, feature(test))]
+#![allow(non_snake_case, non_camel_case_types)]
 
-const CRC16_CCITT_TABLE: [u16; 256] = [
-    0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
-    0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,
-    0x1231, 0x0210, 0x3273, 0x2252, 0x52B5, 0x4294, 0x72F7, 0x62D6,
-    0x9339, 0x8318, 0xB37B, 0xA35A, 0xD3BD, 0xC39C, 0xF3FF, 0xE3DE,
-    0x2462, 0x3443, 0x0420, 0x1401, 0x64E6, 0x74C7, 0x44A4, 0x5485,
-    0xA56A, 0xB54B, 0x8528, 0x9509, 0xE5EE, 0xF5CF, 0xC5AC, 0xD58D,
-    0x3653, 0x2672, 0x1611, 0x0630, 0x76D7, 0x66F6, 0x5695, 0x46B4,
-    0xB75B, 0xA77A, 0x9719, 0x8738, 0xF7DF, 0xE7FE, 0xD79D, 0xC7BC,
-    0x48C4, 0x58E5, 0x6886, 0x78A7, 0x0840, 0x1861, 0x2802, 0x3823,
-    0xC9CC, 0xD9ED, 0xE98E, 0xF9AF, 0x8948, 0x9969, 0xA90A, 0xB92B,
-    0x5AF5, 0x4AD4, 0x7AB7, 0x6A96, 0x1A71, 0x0A50, 0x3A33, 0x2A12,
-    0xDBFD, 0xCBDC, 0xFBBF, 0xEB9E, 0x9B79, 0x8B58, 0xBB3B, 0xAB1A,
-    0x6CA6, 0x7C87, 0x4CE4, 0x5CC5, 0x2C22, 0x3C03, 0x0C60, 0x1C41,
-    0xEDAE, 0xFD8F, 0xCDEC, 0xDDCD, 0xAD2A, 0xBD0B, 0x8D68, 0x9D49,
-    0x7E97, 0x6EB6, 0x5ED5, 0x4EF4, 0x3E13, 0x2E32, 0x1E51, 0x0E70,
-    0xFF9F, 0xEFBE, 0xDFDD, 0xCFFC, 0xBF1B, 0xAF3A, 0x9F59, 0x8F78,
-    0x9188, 0x81A9, 0xB1CA, 0xA1EB, 0xD10C, 0xC12D, 0xF14E, 0xE16F,
-    0x1080, 0x00A1, 0x30C2, 0x20E3, 0x5004, 0x4025, 0x7046, 0x6067,
-    0x83B9, 0x9398, 0xA3FB, 0xB3DA, 0xC33D, 0xD31C, 0xE37F, 0xF35E,
-    0x02B1, 0x1290, 0x22F3, 0x32D2, 0x4235, 0x5214, 0x6277, 0x7256,
-    0xB5EA, 0xA5CB, 0x95A8, 0x8589, 0xF56E, 0xE54F, 0xD52C, 0xC50D,
-    0x34E2, 0x24C3, 0x14A0, 0x0481, 0x7466, 0x6447, 0x5424, 0x4405,
-    0xA7DB, 0xB7FA, 0x8799, 0x97B8, 0xE75F, 0xF77E, 0xC71D, 0xD73C,
-    0x26D3, 0x36F2, 0x0691, 0x16B0, 0x6657, 0x7676, 0x4615, 0x5634,
-    0xD94C, 0xC96D, 0xF90E, 0xE92F, 0x99C8, 0x89E9, 0xB98A, 0xA9AB,
-    0x5844, 0x4865, 0x7806, 0x6827, 0x18C0, 0x08E1, 0x3882, 0x28A3,
-    0xCB7D, 0xDB5C, 0xEB3F, 0xFB1E, 0x8BF9, 0x9BD8, 0xABBB, 0xBB9A,
-    0x4A75, 0x5A54, 0x6A37, 0x7A16, 0x0AF1, 0x1AD0, 0x2AB3, 0x3A92,
-    0xFD2E, 0xED0F, 0xDD6C, 0xCD4D, 0xBDAA, 0xAD8B, 0x9DE8, 0x8DC9,
-    0x7C26, 0x6C07, 0x5C64, 0x4C45, 0x3CA2, 0x2C83, 0x1CE0, 0x0CC1,
-    0xEF1F, 0xFF3E, 0xCF5D, 0xDF7C, 0xAF9B, 0xBFBA, 0x8FD9, 0x9FF8,
-    0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0];
+include!(concat!(env!("OUT_DIR"), "/tables.rs"));
 
-const CRC16_IBM_TABLE: [u16; 256] = [
-    0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
-    0xC601, 0x06C0, 0x0780, 0xC741, 0x0500, 0xC5C1, 0xC481, 0x0440,
-    0xCC01, 0x0CC0, 0x0D80, 0xCD41, 0x0F00, 0xCFC1, 0xCE81, 0x0E40,
-    0x0A00, 0xCAC1, 0xCB81, 0x0B40, 0xC901, 0x09C0, 0x0880, 0xC841,
-    0xD801, 0x18C0, 0x1980, 0xD941, 0x1B00, 0xDBC1, 0xDA81, 0x1A40,
-    0x1E00, 0xDEC1, 0xDF81, 0x1F40, 0xDD01, 0x1DC0, 0x1C80, 0xDC41,
-    0x1400, 0xD4C1, 0xD581, 0x1540, 0xD701, 0x17C0, 0x1680, 0xD641,
-    0xD201, 0x12C0, 0x1380, 0xD341, 0x1100, 0xD1C1, 0xD081, 0x1040,
-    0xF001, 0x30C0, 0x3180, 0xF141, 0x3300, 0xF3C1, 0xF281, 0x3240,
-    0x3600, 0xF6C1, 0xF781, 0x3740, 0xF501, 0x35C0, 0x3480, 0xF441,
-    0x3C00, 0xFCC1, 0xFD81, 0x3D40, 0xFF01, 0x3FC0, 0x3E80, 0xFE41,
-    0xFA01, 0x3AC0, 0x3B80, 0xFB41, 0x3900, 0xF9C1, 0xF881, 0x3840,
-    0x2800, 0xE8C1, 0xE981, 0x2940, 0xEB01, 0x2BC0, 0x2A80, 0xEA41,
-    0xEE01, 0x2EC0, 0x2F80, 0xEF41, 0x2D00, 0xEDC1, 0xEC81, 0x2C40,
-    0xE401, 0x24C0, 0x2580, 0xE541, 0x2700, 0xE7C1, 0xE681, 0x2640,
-    0x2200, 0xE2C1, 0xE381, 0x2340, 0xE101, 0x21C0, 0x2080, 0xE041,
-    0xA001, 0x60C0, 0x6180, 0xA141, 0x6300, 0xA3C1, 0xA281, 0x6240,
-    0x6600, 0xA6C1, 0xA781, 0x6740, 0xA501, 0x65C0, 0x6480, 0xA441,
-    0x6C00, 0xACC1, 0xAD81, 0x6D40, 0xAF01, 0x6FC0, 0x6E80, 0xAE41,
-    0xAA01, 0x6AC0, 0x6B80, 0xAB41, 0x6900, 0xA9C1, 0xA881, 0x6840,
-    0x7800, 0xB8C1, 0xB981, 0x7940, 0xBB01, 0x7BC0, 0x7A80, 0xBA41,
-    0xBE01, 0x7EC0, 0x7F80, 0xBF41, 0x7D00, 0xBDC1, 0xBC81, 0x7C40,
-    0xB401, 0x74C0, 0x7580, 0xB541, 0x7700, 0xB7C1, 0xB681, 0x7640,
-    0x7200, 0xB2C1, 0xB381, 0x7340, 0xB101, 0x71C0, 0x7080, 0xB041,
-    0x5000, 0x90C1, 0x9181, 0x5140, 0x9301, 0x53C0, 0x5280, 0x9241,
-    0x9601, 0x56C0, 0x5780, 0x9741, 0x5500, 0x95C1, 0x9481, 0x5440,
-    0x9C01, 0x5CC0, 0x5D80, 0x9D41, 0x5F00, 0x9FC1, 0x9E81, 0x5E40,
-    0x5A00, 0x9AC1, 0x9B81, 0x5B40, 0x9901, 0x59C0, 0x5880, 0x9841,
-    0x8801, 0x48C0, 0x4980, 0x8941, 0x4B00, 0x8BC1, 0x8A81, 0x4A40,
-    0x4E00, 0x8EC1, 0x8F81, 0x4F40, 0x8D01, 0x4DC0, 0x4C80, 0x8C41,
-    0x4400, 0x84C1, 0x8581, 0x4540, 0x8701, 0x47C0, 0x4680, 0x8641,
-    0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040];
+const BIT_REVERSE_TABLE: [u16; 256] = [
+    0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0, 0x30, 0xB0, 0x70, 0xF0,
+    0x08, 0x88, 0x48, 0xC8, 0x28, 0xA8, 0x68, 0xE8, 0x18, 0x98, 0x58, 0xD8, 0x38, 0xB8, 0x78, 0xF8,
+    0x04, 0x84, 0x44, 0xC4, 0x24, 0xA4, 0x64, 0xE4, 0x14, 0x94, 0x54, 0xD4, 0x34, 0xB4, 0x74, 0xF4,
+    0x0C, 0x8C, 0x4C, 0xCC, 0x2C, 0xAC, 0x6C, 0xEC, 0x1C, 0x9C, 0x5C, 0xDC, 0x3C, 0xBC, 0x7C, 0xFC,
+    0x02, 0x82, 0x42, 0xC2, 0x22, 0xA2, 0x62, 0xE2, 0x12, 0x92, 0x52, 0xD2, 0x32, 0xB2, 0x72, 0xF2,
+    0x0A, 0x8A, 0x4A, 0xCA, 0x2A, 0xAA, 0x6A, 0xEA, 0x1A, 0x9A, 0x5A, 0xDA, 0x3A, 0xBA, 0x7A, 0xFA,
+    0x06, 0x86, 0x46, 0xC6, 0x26, 0xA6, 0x66, 0xE6, 0x16, 0x96, 0x56, 0xD6, 0x36, 0xB6, 0x76, 0xF6,
+    0x0E, 0x8E, 0x4E, 0xCE, 0x2E, 0xAE, 0x6E, 0xEE, 0x1E, 0x9E, 0x5E, 0xDE, 0x3E, 0xBE, 0x7E, 0xFE,
+    0x01, 0x81, 0x41, 0xC1, 0x21, 0xA1, 0x61, 0xE1, 0x11, 0x91, 0x51, 0xD1, 0x31, 0xB1, 0x71, 0xF1,
+    0x09, 0x89, 0x49, 0xC9, 0x29, 0xA9, 0x69, 0xE9, 0x19, 0x99, 0x59, 0xD9, 0x39, 0xB9, 0x79, 0xF9,
+    0x05, 0x85, 0x45, 0xC5, 0x25, 0xA5, 0x65, 0xE5, 0x15, 0x95, 0x55, 0xD5, 0x35, 0xB5, 0x75, 0xF5,
+    0x0D, 0x8D, 0x4D, 0xCD, 0x2D, 0xAD, 0x6D, 0xED, 0x1D, 0x9D, 0x5D, 0xDD, 0x3D, 0xBD, 0x7D, 0xFD,
+    0x03, 0x83, 0x43, 0xC3, 0x23, 0xA3, 0x63, 0xE3, 0x13, 0x93, 0x53, 0xD3, 0x33, 0xB3, 0x73, 0xF3,
+    0x0B, 0x8B, 0x4B, 0xCB, 0x2B, 0xAB, 0x6B, 0xEB, 0x1B, 0x9B, 0x5B, 0xDB, 0x3B, 0xBB, 0x7B, 0xFB,
+    0x07, 0x87, 0x47, 0xC7, 0x27, 0xA7, 0x67, 0xE7, 0x17, 0x97, 0x57, 0xD7, 0x37, 0xB7, 0x77, 0xF7,
+    0x0F, 0x8F, 0x4F, 0xCF, 0x2F, 0xAF, 0x6F, 0xEF, 0x1F, 0x9F, 0x5F, 0xDF, 0x3F, 0xBF, 0x7F, 0xFF];
 
 pub trait CrcType : std::marker::PhantomFn<Self> {
     fn init() -> u16;
     fn update(crc: u16, msg: &[u8]) -> u16;
+    fn get(crc: u16) -> u16;
 }
 
-/// CRC 16
-///
-/// ```text
-///   Name : CRC-16
-///  Width : 16
-///   Poly : 8005
-///   Init : 0000
-///  RefIn : True
-/// RefOut : True
-/// XorOut : 0000
-///  Check : BB3D
-/// ```
-pub enum Crc16 {}
-
-/// CRC 16/IBM
-///
-/// ```text
-///   Name : CRC-16/IBM
-///  Width : 16
-///   Poly : 8005
-///   Init : FFFF
-///  RefIn : True
-/// RefOut : True
-/// XorOut : 0000
-///  Check : 4B37
-/// ```
-pub enum Crc16Ibm {}
-
-/// CRC 16/CCITT
-///
-/// ```text
-///   Name : CRC-16/CCITT-FALSE
-///  Width : 16
-///   Poly : 1021
-///   Init : FFFF
-///  RefIn : False
-/// RefOut : False
-/// XorOut : 0000
-///  Check : 29B1
-/// ```
-pub enum Crc16Ccitt {}
-
-impl CrcType for Crc16 {
-    fn init() -> u16 {
-        0x0000
-    }
-    fn update(mut crc: u16, msg: &[u8]) -> u16 {
-        for i in 0..msg.len() {
-            crc = (crc >> 8) ^ CRC16_IBM_TABLE[((crc & 0xFF) ^ msg[i] as u16) as usize];
-        }
-        crc
-    }
-}
-
-impl CrcType for Crc16Ibm {
-    fn init() -> u16 {
-        0xFFFF
-    }
-    fn update(mut crc: u16, msg: &[u8]) -> u16 {
-        for i in 0..msg.len() {
-            crc = (crc >> 8) ^ CRC16_IBM_TABLE[((crc & 0xFF) ^ msg[i] as u16) as usize];
-        }
-        crc
-    }
-}
-
-impl CrcType for Crc16Ccitt {
-    fn init() -> u16 {
-        0xFFFF
-    }
-    fn update(mut crc: u16, msg: &[u8]) -> u16 {
-        for i in 0..msg.len() {
-            crc = (crc << 8) ^ CRC16_CCITT_TABLE[((crc >> 8) ^ msg[i] as u16) as usize];
-        }
-        crc
-    }
-}
-
+/// State of crc calculation.
 pub struct State<T> {
     state: u16,
     ty: std::marker::PhantomData<T>,
 }
 
 impl<T: CrcType> State<T> {
+    /// Creates new state of given CRC type.
+    ///
+    /// ```
+    /// use crc16::*;
+    ///
+    /// let state = State::<ARC>::new();
+    /// ```
     pub fn new() -> State<T> {
         State {
             state: <T as CrcType>::init(),
             ty: std::marker::PhantomData,
         }
     }
+    /// Updates state with new data.
     pub fn update(&mut self, msg: &[u8]) {
         self.state = <T as CrcType>::update(self.state, msg);
     }
+    /// Returns CRC value of state.
     pub fn get(&self) -> u16 {
-        self.state
+        <T as CrcType>::get(self.state)
     }
+    /// Calculates CRC value of given type for given message.
+    ///
+    /// ```
+    /// use crc16::*;
+    ///
+    /// assert_eq!(State::<ARC>::calculate(b"123456789"), 0xBB3D);
     pub fn calculate(msg: &[u8]) -> u16 {
-        <T as CrcType>::update(<T as CrcType>::init(), msg)
+        <T as CrcType>::get(<T as CrcType>::update(<T as CrcType>::init(), msg))
     }
 }
 
-#[cfg(test)]
-mod test {
-    extern crate test;
-    use super::State;
-    use super::Crc16;
-    use super::Crc16Ibm;
-    use super::Crc16Ccitt;
+macro_rules! define_crc_type {
+    ($(#[$attr:meta])* poly=$poly:expr, init=$init:expr, refin=$refin:ident, refout=True, xorout=$xorout:expr,
+     check=$check:expr, name=$name:ident, table=$table:ident, full_name=$full_name:expr,
+     test_name=$test_name:ident) =>
+    (
+        $(#[$attr])* pub enum $name {}
 
-    #[test]
-    fn test_crc16_ccitt() {
-        assert_eq!(State::<Crc16Ccitt>::calculate(b"123456789"), 0x29B1);
-        let mut state = State::<Crc16Ccitt>::new();
-        state.update(b"12345");
-        state.update(b"6789");
-        assert_eq!(state.get(), 0x29B1);
-    }
-
-    #[test]
-    fn test_crc16_ibm() {
-        assert_eq!(State::<Crc16Ibm>::calculate(b"123456789"), 0x4B37);
-        let mut state = State::<Crc16Ibm>::new();
-        state.update(b"12345");
-        state.update(b"6789");
-        assert_eq!(state.get(), 0x4B37);
-    }
-
-    #[test]
-    fn test_crc16() {
-        assert_eq!(State::<Crc16>::calculate(b"123456789"), 0xBB3D);
-        let mut state = State::<Crc16>::new();
-        state.update(b"12345");
-        state.update(b"6789");
-        assert_eq!(state.get(), 0xBB3D);
-    }
-
-    #[bench]
-    fn bench_crc16_ccitt(b: &mut test::Bencher) {
-        let mut v = Vec::with_capacity(1024 * 1024);
-        for i in 0..(1024 * 1024) {
-            v.push((i % 256) as u8)
+        impl CrcType for $name {
+            fn init() -> u16 {
+                let mut crc = $init;
+                for _ in 0..16 {
+                    let bit = crc & 1 > 0;
+                    if bit {
+                        crc = crc ^ $poly;
+                    }
+                    crc = crc >> 1;
+                    if bit {
+                        crc = crc | 0x8000;
+                    }
+                }
+                (BIT_REVERSE_TABLE[(crc & 0xFF) as usize] << 8) | BIT_REVERSE_TABLE[(crc >> 8) as usize]
+            }
+            fn update(mut crc: u16, msg: &[u8]) -> u16 {
+                for i in 0..msg.len() {
+                    crc = ((crc >> 8) | ((msg[i] as u16) << 8)) ^ $table[(crc & 0xff) as usize];
+                }
+                crc
+            }
+            fn get(mut crc: u16) -> u16 {
+                for _ in 0..2 {
+                    crc = (crc >> 8) ^ $table[(crc & 0xff) as usize];
+                }
+                crc ^ $xorout
+            }
         }
-        b.iter(|| State::<Crc16Ccitt>::calculate(&v[..]));
-        b.bytes = 1024 * 1024;
-    }
 
-    #[bench]
-    fn bench_crc16_ibm(b: &mut test::Bencher) {
-        let mut v = Vec::with_capacity(1024 * 1024);
-        for i in 0..(1024 * 1024) {
-            v.push((i % 256) as u8)
-        }
-        b.iter(|| State::<Crc16Ibm>::calculate(&v[..]));
-        b.bytes = 1024 * 1024;
-    }
+        #[cfg(test)]
+        mod $test_name {
+            extern crate test;
+            use super::$name;
+            use super::State;
+            #[test]
+            fn test_crc() {
+                assert_eq!(State::<$name>::calculate(b"123456789"), $check);
+                let mut state = State::<$name>::new();
+                state.update(b"12345");
+                state.update(b"6789");
+                assert_eq!(state.get(), $check);
+            }
 
-    #[bench]
-    fn bench_crc16(b: &mut test::Bencher) {
-        let mut v = Vec::with_capacity(1024 * 1024);
-        for i in 0..(1024 * 1024) {
-            v.push((i % 256) as u8)
+            #[bench]
+            fn bench_crc(b: &mut test::Bencher) {
+                let mut v = Vec::with_capacity(1024 * 1024);
+                for i in 0..(1024 * 1024) {
+                    v.push((i % 256) as u8)
+                }
+                b.iter(|| State::<$name>::calculate(&v[..]));
+                b.bytes = 1024 * 1024;
+            }
+        } 
+    );
+    ($(#[$attr:meta])* poly=$poly:expr, init=$init:expr, refin=$refin:ident, refout=False, xorout=$xorout:expr,
+     check=$check:expr, name=$name:ident, table=$table:ident, full_name=$full_name:expr,
+     test_name=$test_name:ident) =>
+    (
+        $(#[$attr])* pub enum $name {}
+
+        impl CrcType for $name {
+            fn init() -> u16 {
+                let mut crc = $init;
+                for _ in 0..16 {
+                    let bit = crc & 1 > 0;
+                    if bit {
+                        crc = crc ^ $poly;
+                    }
+                    crc = crc >> 1;
+                    if bit {
+                        crc = crc | 0x8000;
+                    }
+                }
+                crc
+            }
+            fn update(mut crc: u16, msg: &[u8]) -> u16 {
+                for i in 0..msg.len() {
+                    crc = ((crc << 8) | (msg[i] as u16)) ^ $table[((crc >> 8) & 0xFF) as usize];
+                }
+                crc
+            }
+            fn get(mut crc: u16) -> u16 {
+                for _ in 0..2 {
+                    crc = (crc << 8) ^ $table[((crc >> 8) & 0xFF) as usize];
+                }
+                crc ^ $xorout
+            }
         }
-        b.iter(|| State::<Crc16>::calculate(&v[..]));
-        b.bytes = 1024 * 1024;
-    }
+
+        #[cfg(test)]
+        mod $test_name {
+            extern crate test;
+            use super::$name;
+            use super::State;
+            #[test]
+            fn test_crc() {
+                assert_eq!(State::<$name>::calculate(b"123456789"), $check);
+                let mut state = State::<$name>::new();
+                state.update(b"12345");
+                state.update(b"6789");
+                assert_eq!(state.get(), $check);
+            }
+
+            #[bench]
+            fn bench_crc(b: &mut test::Bencher) {
+                let mut v = Vec::with_capacity(1024 * 1024);
+                for i in 0..(1024 * 1024) {
+                    v.push((i % 256) as u8)
+                }
+                b.iter(|| State::<$name>::calculate(&v[..]));
+                b.bytes = 1024 * 1024;
+            }
+        }
+    );
 }
+
+define_crc_type! {
+    #[doc = "ARC ```poly=0x8005``` ```check=0xbb3d```"]
+    poly=0x8005, init=0x0000, refin=True, refout=True, xorout=0x0000, check=0xbb3d,
+    name=ARC, table=ARC_TABLE, full_name="ARC", test_name=ARC_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/AUG-CCITT ```poly=0x1021``` ```check=0xe5cc```"]
+    poly=0x1021, init=0x1d0f, refin=False, refout=False, xorout=0x0000, check=0xe5cc,
+    name=AUG_CCITT, table=AUG_CCITT_TABLE, full_name="CRC-16/AUG-CCITT", test_name=AUG_CCITT_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/BUYPASS ```poly=0x8005``` ```check=0xfee8```"]
+    poly=0x8005, init=0x0000, refin=False, refout=False, xorout=0x0000, check=0xfee8,
+    name=BUYPASS, table=BUYPASS_TABLE, full_name="CRC-16/BUYPASS", test_name=BUYPASS_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/CCITT-FALSE ```poly=0x1021``` ```check=0x29b1```"]
+    poly=0x1021, init=0xffff, refin=False, refout=False, xorout=0x0000, check=0x29b1,
+    name=CCITT_FALSE, table=CCITT_FALSE_TABLE, full_name="CRC-16/CCITT-FALSE", test_name=CCITT_FALSE_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/CDMA2000 ```poly=0xc867``` ```check=0x4c06```"]
+    poly=0xc867, init=0xffff, refin=False, refout=False, xorout=0x0000, check=0x4c06,
+    name=CDMA2000, table=CDMA2000_TABLE, full_name="CRC-16/CDMA2000", test_name=CDMA2000_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/DDS-110 ```poly=0x1021``` ```check=0x29b1```"]
+    poly=0x8005, init=0x800d, refin=False, refout=False, xorout=0x0000, check=0x9ecf,
+    name=DDS_110, table=DDS_110_TABLE, full_name="CRC-16/DDS-110", test_name=DDS_110_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/DECT-R ```poly=0x0589``` ```check=0x007e```"]
+    poly=0x0589, init=0x0000, refin=False, refout=False, xorout=0x0001, check=0x007e,
+    name=DECT_R, table=DECT_R_TABLE, full_name="CRC-16/DECT-R", test_name=DECT_R_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/DECT-X ```poly=0x0589``` ```check=0x007f```"]
+    poly=0x0589, init=0x0000, refin=False, refout=False, xorout=0x0000, check=0x007f,
+    name=DECT_X, table=DECT_X_TABLE, full_name="CRC-16/DECT-X", test_name=DECT_X_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/DNP ```poly=0x3d65``` ```check=0xea82```"]
+    poly=0x3d65, init=0x0000, refin=True, refout=True, xorout=0xffff, check=0xea82,
+    name=DNP, table=DNP_TABLE, full_name="CRC-16/DNP", test_name=DNP_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/EN-13757 ```poly=0x3d65``` ```check=0xc2b7```"]
+    poly=0x3d65, init=0x0000, refin=False, refout=False, xorout=0xffff, check=0xc2b7,
+    name=EN_13757, table=EN_13757_TABLE, full_name="CRC-16/EN-13757", test_name=EN_13757_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/GENIBUS ```poly=0x1021``` ```check=0xd64e```"]
+    poly=0x1021, init=0xffff, refin=False, refout=False, xorout=0xffff, check=0xd64e,
+    name=GENIBUS, table=GENIBUS_TABLE, full_name="CRC-16/GENIBUS", test_name=GENIBUS_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/MAXIM ```poly=0x8005``` ```check=0x44c2```"]
+    poly=0x8005, init=0x0000, refin=True, refout=True, xorout=0xffff, check=0x44c2,
+    name=MAXIM, table=MAXIM_TABLE, full_name="CRC-16/MAXIM", test_name=MAXIM_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/MCRF4XX ```poly=0x1021``` ```check=0x6f91```"]
+    poly=0x1021, init=0xffff, refin=True, refout=True, xorout=0x0000, check=0x6f91,
+    name=MCRF4XX, table=MCRF4XX_TABLE, full_name="CRC-16/MCRF4XX", test_name=MCRF4XX_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/RIELLO ```poly=0x1021``` ```check=0x63d0```"]
+    poly=0x1021, init=0xb2aa, refin=True, refout=True, xorout=0x0000, check=0x63d0,
+    name=RIELLO, table=RIELLO_TABLE, full_name="CRC-16/RIELLO", test_name=RIELLO_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/T10-DIF ```poly=0x8bb7``` ```check=0xd0db```"]
+    poly=0x8bb7, init=0x0000, refin=False, refout=False, xorout=0x0000, check=0xd0db,
+    name=T10_DIF, table=T10_DIF_TABLE, full_name="CRC-16/T10-DIF", test_name=T10_DIF_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/TELEDISK ```poly=0xa097``` ```check=0x0fb3```"]
+    poly=0xa097, init=0x0000, refin=False, refout=False, xorout=0x0000, check=0x0fb3,
+    name=TELEDISK, table=TELEDISK_TABLE, full_name="CRC-16/TELEDISK", test_name=TELEDISK_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/TMS37157 ```poly=0x1021``` ```check=0x26b1```"]
+    poly=0x1021, init=0x89ec, refin=True, refout=True, xorout=0x0000, check=0x26b1,
+    name=TMS37157, table=TMS37157_TABLE, full_name="CRC-16/TMS37157", test_name=TMS37157_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-16/USB ```poly=0x8005``` ```check=0xb4c8```"]
+    poly=0x8005, init=0xffff, refin=True, refout=True, xorout=0xffff, check=0xb4c8,
+    name=USB, table=USB_TABLE, full_name="CRC-16/USB", test_name=USB_TEST
+}
+
+define_crc_type! {
+    #[doc = "CRC-A ```poly=0x1021``` ```check=0xbf05```"]
+    poly=0x1021, init=0xc6c6, refin=True, refout=True, xorout=0x0000, check=0xbf05,
+    name=CRC_A, table=CRC_A_TABLE, full_name="CRC-A", test_name=CRC_A_TEST
+}
+
+define_crc_type! {
+    #[doc = "KERMIT ```poly=0x1021``` ```check=0x2189```"]
+    poly=0x1021, init=0x0000, refin=True, refout=True, xorout=0x0000, check=0x2189,
+    name=KERMIT, table=KERMIT_TABLE, full_name="KERMIT", test_name=KERMIT_TEST
+}
+
+define_crc_type! {
+    #[doc = "MODBUS ```poly=0x8005``` ```check=0x4b37```"]
+    poly=0x8005, init=0xffff, refin=True, refout=True, xorout=0x0000, check=0x4b37,
+    name=MODBUS, table=MODBUS_TABLE, full_name="MODBUS", test_name=MODBUS_TEST
+}
+
+define_crc_type! {
+    #[doc = "X-25 ```poly=0x1021``` ```check=0x906e```"]
+    poly=0x1021, init=0xffff, refin=True, refout=True, xorout=0xffff, check=0x906e,
+    name=X_25, table=X_25_TABLE, full_name="X-25", test_name=X_25_TEST
+}
+
+define_crc_type! {
+    #[doc = "XMODEM ```poly=0x1021``` ```check=0x31c3```"]
+    poly=0x1021, init=0x0000, refin=False, refout=False, xorout=0x0000, check=0x31c3,
+    name=XMODEM, table=XMODEM_TABLE, full_name="XMODEM", test_name=XMODEM_TEST
+}
+
