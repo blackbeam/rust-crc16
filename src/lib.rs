@@ -55,6 +55,7 @@ pub trait CrcType : std::marker::PhantomFn<Self> {
 }
 
 /// State of crc calculation.
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct State<T> {
     state: u16,
     ty: std::marker::PhantomData<T>,
@@ -235,138 +236,161 @@ macro_rules! define_crc_type {
 
 define_crc_type! {
     #[doc = "ARC ```poly=0x8005``` ```check=0xbb3d```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x8005, init=0x0000, refin=True, refout=True, xorout=0x0000, check=0xbb3d,
     name=ARC, table=ARC_TABLE, full_name="ARC", test_name=ARC_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/AUG-CCITT ```poly=0x1021``` ```check=0xe5cc```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x1021, init=0x1d0f, refin=False, refout=False, xorout=0x0000, check=0xe5cc,
     name=AUG_CCITT, table=AUG_CCITT_TABLE, full_name="CRC-16/AUG-CCITT", test_name=AUG_CCITT_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/BUYPASS ```poly=0x8005``` ```check=0xfee8```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x8005, init=0x0000, refin=False, refout=False, xorout=0x0000, check=0xfee8,
     name=BUYPASS, table=BUYPASS_TABLE, full_name="CRC-16/BUYPASS", test_name=BUYPASS_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/CCITT-FALSE ```poly=0x1021``` ```check=0x29b1```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x1021, init=0xffff, refin=False, refout=False, xorout=0x0000, check=0x29b1,
     name=CCITT_FALSE, table=CCITT_FALSE_TABLE, full_name="CRC-16/CCITT-FALSE", test_name=CCITT_FALSE_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/CDMA2000 ```poly=0xc867``` ```check=0x4c06```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0xc867, init=0xffff, refin=False, refout=False, xorout=0x0000, check=0x4c06,
     name=CDMA2000, table=CDMA2000_TABLE, full_name="CRC-16/CDMA2000", test_name=CDMA2000_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/DDS-110 ```poly=0x1021``` ```check=0x29b1```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x8005, init=0x800d, refin=False, refout=False, xorout=0x0000, check=0x9ecf,
     name=DDS_110, table=DDS_110_TABLE, full_name="CRC-16/DDS-110", test_name=DDS_110_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/DECT-R ```poly=0x0589``` ```check=0x007e```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x0589, init=0x0000, refin=False, refout=False, xorout=0x0001, check=0x007e,
     name=DECT_R, table=DECT_R_TABLE, full_name="CRC-16/DECT-R", test_name=DECT_R_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/DECT-X ```poly=0x0589``` ```check=0x007f```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x0589, init=0x0000, refin=False, refout=False, xorout=0x0000, check=0x007f,
     name=DECT_X, table=DECT_X_TABLE, full_name="CRC-16/DECT-X", test_name=DECT_X_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/DNP ```poly=0x3d65``` ```check=0xea82```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x3d65, init=0x0000, refin=True, refout=True, xorout=0xffff, check=0xea82,
     name=DNP, table=DNP_TABLE, full_name="CRC-16/DNP", test_name=DNP_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/EN-13757 ```poly=0x3d65``` ```check=0xc2b7```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x3d65, init=0x0000, refin=False, refout=False, xorout=0xffff, check=0xc2b7,
     name=EN_13757, table=EN_13757_TABLE, full_name="CRC-16/EN-13757", test_name=EN_13757_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/GENIBUS ```poly=0x1021``` ```check=0xd64e```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x1021, init=0xffff, refin=False, refout=False, xorout=0xffff, check=0xd64e,
     name=GENIBUS, table=GENIBUS_TABLE, full_name="CRC-16/GENIBUS", test_name=GENIBUS_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/MAXIM ```poly=0x8005``` ```check=0x44c2```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x8005, init=0x0000, refin=True, refout=True, xorout=0xffff, check=0x44c2,
     name=MAXIM, table=MAXIM_TABLE, full_name="CRC-16/MAXIM", test_name=MAXIM_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/MCRF4XX ```poly=0x1021``` ```check=0x6f91```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x1021, init=0xffff, refin=True, refout=True, xorout=0x0000, check=0x6f91,
     name=MCRF4XX, table=MCRF4XX_TABLE, full_name="CRC-16/MCRF4XX", test_name=MCRF4XX_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/RIELLO ```poly=0x1021``` ```check=0x63d0```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x1021, init=0xb2aa, refin=True, refout=True, xorout=0x0000, check=0x63d0,
     name=RIELLO, table=RIELLO_TABLE, full_name="CRC-16/RIELLO", test_name=RIELLO_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/T10-DIF ```poly=0x8bb7``` ```check=0xd0db```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x8bb7, init=0x0000, refin=False, refout=False, xorout=0x0000, check=0xd0db,
     name=T10_DIF, table=T10_DIF_TABLE, full_name="CRC-16/T10-DIF", test_name=T10_DIF_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/TELEDISK ```poly=0xa097``` ```check=0x0fb3```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0xa097, init=0x0000, refin=False, refout=False, xorout=0x0000, check=0x0fb3,
     name=TELEDISK, table=TELEDISK_TABLE, full_name="CRC-16/TELEDISK", test_name=TELEDISK_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/TMS37157 ```poly=0x1021``` ```check=0x26b1```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x1021, init=0x89ec, refin=True, refout=True, xorout=0x0000, check=0x26b1,
     name=TMS37157, table=TMS37157_TABLE, full_name="CRC-16/TMS37157", test_name=TMS37157_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/USB ```poly=0x8005``` ```check=0xb4c8```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x8005, init=0xffff, refin=True, refout=True, xorout=0xffff, check=0xb4c8,
     name=USB, table=USB_TABLE, full_name="CRC-16/USB", test_name=USB_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-A ```poly=0x1021``` ```check=0xbf05```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x1021, init=0xc6c6, refin=True, refout=True, xorout=0x0000, check=0xbf05,
     name=CRC_A, table=CRC_A_TABLE, full_name="CRC-A", test_name=CRC_A_TEST
 }
 
 define_crc_type! {
     #[doc = "KERMIT ```poly=0x1021``` ```check=0x2189```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x1021, init=0x0000, refin=True, refout=True, xorout=0x0000, check=0x2189,
     name=KERMIT, table=KERMIT_TABLE, full_name="KERMIT", test_name=KERMIT_TEST
 }
 
 define_crc_type! {
     #[doc = "MODBUS ```poly=0x8005``` ```check=0x4b37```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x8005, init=0xffff, refin=True, refout=True, xorout=0x0000, check=0x4b37,
     name=MODBUS, table=MODBUS_TABLE, full_name="MODBUS", test_name=MODBUS_TEST
 }
 
 define_crc_type! {
     #[doc = "X-25 ```poly=0x1021``` ```check=0x906e```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x1021, init=0xffff, refin=True, refout=True, xorout=0xffff, check=0x906e,
     name=X_25, table=X_25_TABLE, full_name="X-25", test_name=X_25_TEST
 }
 
 define_crc_type! {
     #[doc = "XMODEM ```poly=0x1021``` ```check=0x31c3```"]
+    #[derive(Copy, Clone, PartialEq, Eq)]
     poly=0x1021, init=0x0000, refin=False, refout=False, xorout=0x0000, check=0x31c3,
     name=XMODEM, table=XMODEM_TABLE, full_name="XMODEM", test_name=XMODEM_TEST
 }
