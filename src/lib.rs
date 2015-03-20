@@ -23,6 +23,10 @@
 //! ```
 #![cfg_attr(test, feature(test))]
 #![allow(non_snake_case, non_camel_case_types)]
+#![feature(hash)]
+
+use std::hash::Hasher;
+use std::default::Default;
 
 include!(concat!(env!("OUT_DIR"), "/tables.rs"));
 
@@ -86,6 +90,23 @@ impl<T: CrcType> State<T> {
     /// assert_eq!(State::<ARC>::calculate(b"123456789"), 0xBB3D);
     pub fn calculate(msg: &[u8]) -> u16 {
         <T as CrcType>::get(<T as CrcType>::update(<T as CrcType>::init(), msg))
+    }
+}
+
+impl<T: CrcType> Hasher for State<T> {
+    #[inline]
+    fn finish(&self) -> u64 {
+        self.get() as u64
+    }
+    #[inline]
+    fn write(&mut self, bytes: &[u8]) {
+        self.update(bytes);
+    }
+}
+
+impl<T: CrcType> Default for State<T> {
+    fn default() -> State<T> {
+        State::new()
     }
 }
 
@@ -191,7 +212,7 @@ macro_rules! define_crc_type {
             use super::$name;
             use super::State;
             #[test]
-            fn test_crc() {
+            fn test_it() {
                 assert_eq!(State::<$name>::calculate(b"123456789"), $check);
                 let mut state = State::<$name>::new();
                 state.update(b"12345");
@@ -200,7 +221,7 @@ macro_rules! define_crc_type {
             }
 
             #[bench]
-            fn bench_crc(b: &mut test::Bencher) {
+            fn bench_it(b: &mut test::Bencher) {
                 let mut v = Vec::with_capacity(1024 * 1024);
                 for i in 0..(1024 * 1024) {
                     v.push((i % 256) as u8)
