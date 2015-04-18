@@ -21,7 +21,6 @@
 //! state.update(b"6789");
 //! assert_eq!(state.get(), 0xBB3D);
 //! ```
-#![cfg_attr(test, feature(test))]
 #![allow(non_snake_case, non_camel_case_types)]
 
 use std::hash::Hasher;
@@ -148,7 +147,6 @@ macro_rules! define_crc_type {
 
         #[cfg(test)]
         mod $test_name {
-            extern crate test;
             use super::$name;
             use super::State;
             #[test]
@@ -159,17 +157,7 @@ macro_rules! define_crc_type {
                 state.update(b"6789");
                 assert_eq!(state.get(), $check);
             }
-
-            #[bench]
-            fn bench_crc(b: &mut test::Bencher) {
-                let mut v = Vec::with_capacity(1024 * 1024);
-                for i in 0..(1024 * 1024) {
-                    v.push((i % 256) as u8)
-                }
-                b.iter(|| State::<$name>::calculate(&v[..]));
-                b.bytes = 1024 * 1024;
-            }
-        } 
+        }
     );
     ($(#[$attr:meta])* poly=$poly:expr, init=$init:expr, refin=$refin:ident, refout=False, xorout=$xorout:expr,
      check=$check:expr, name=$name:ident, table=$table:ident, full_name=$full_name:expr,
@@ -208,7 +196,6 @@ macro_rules! define_crc_type {
 
         #[cfg(test)]
         mod $test_name {
-            extern crate test;
             use super::$name;
             use super::State;
             #[test]
@@ -218,16 +205,6 @@ macro_rules! define_crc_type {
                 state.update(b"12345");
                 state.update(b"6789");
                 assert_eq!(state.get(), $check);
-            }
-
-            #[bench]
-            fn bench_it(b: &mut test::Bencher) {
-                let mut v = Vec::with_capacity(1024 * 1024);
-                for i in 0..(1024 * 1024) {
-                    v.push((i % 256) as u8)
-                }
-                b.iter(|| State::<$name>::calculate(&v[..]));
-                b.bytes = 1024 * 1024;
             }
         }
     );
