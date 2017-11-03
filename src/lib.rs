@@ -23,8 +23,10 @@
 //! ```
 #![allow(non_snake_case, non_camel_case_types)]
 
-use std::hash::Hasher;
-use std::default::Default;
+#![no_std]
+
+use core::hash::Hasher;
+use core::default::Default;
 
 include!(concat!(env!("OUT_DIR"), "/tables.rs"));
 
@@ -56,7 +58,7 @@ pub trait CrcType {
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct State<T> {
     state: u16,
-    ty: std::marker::PhantomData<T>,
+    ty: core::marker::PhantomData<T>,
 }
 
 impl<T: CrcType> State<T> {
@@ -70,7 +72,7 @@ impl<T: CrcType> State<T> {
     pub fn new() -> State<T> {
         State {
             state: <T as CrcType>::init(),
-            ty: std::marker::PhantomData,
+            ty: core::marker::PhantomData,
         }
     }
     /// Updates state with new data.
