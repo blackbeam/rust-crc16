@@ -8,7 +8,7 @@ description = "A CRC16 implementation"
 repository = "https://github.com/blackbeam/rust-crc16"
 documentation = "https://blackbeam.github.io/rust-crc16"
 readme = "README.md"
-keywords = ["crc", "crc16", "crc-16", "hash", "checksum"]
+keywords = ["crc", "crc16", "crc-16", "hash", "checksum", "no_std"]
 exclude = [".*"]
 build = "build.rs"
 
