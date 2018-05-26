@@ -214,21 +214,21 @@ macro_rules! define_crc_type {
 
 define_crc_type! {
     #[doc = "ARC ```poly=0x8005``` ```check=0xbb3d```"]
-    #[derive(Copy, Clone, PartialEq, Eq)]
+    #[derive(Copy, Clone, PartialEq, Eq, Debug)]
     poly=0x8005, init=0x0000, refin=True, refout=True, xorout=0x0000, check=0xbb3d,
     name=ARC, table=ARC_TABLE, full_name="ARC", test_name=ARC_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/AUG-CCITT ```poly=0x1021``` ```check=0xe5cc```"]
-    #[derive(Copy, Clone, PartialEq, Eq)]
+    #[derive(Copy, Clone, PartialEq, Eq, Debug)]
     poly=0x1021, init=0x1d0f, refin=False, refout=False, xorout=0x0000, check=0xe5cc,
     name=AUG_CCITT, table=AUG_CCITT_TABLE, full_name="CRC-16/AUG-CCITT", test_name=AUG_CCITT_TEST
 }
 
 define_crc_type! {
     #[doc = "CRC-16/BUYPASS ```poly=0x8005``` ```check=0xfee8```"]
-    #[derive(Copy, Clone, PartialEq, Eq)]
+    #[derive(Copy, Clone, PartialEq, Eq, Debug)]
     poly=0x8005, init=0x0000, refin=False, refout=False, xorout=0x0000, check=0xfee8,
     name=BUYPASS, table=BUYPASS_TABLE, full_name="CRC-16/BUYPASS", test_name=BUYPASS_TEST
 }
